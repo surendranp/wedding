@@ -409,12 +409,37 @@
     line-height: 1.5;
   }
 
+  .wish-stats {
+    margin-top: 26px;
+    text-align: left;
+    color: var(--gold-light);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+  }
+
   .wishes-list {
-    margin-top: 48px;
+    margin-top: 16px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     text-align: left;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 6px;
+    scroll-behavior: smooth;
+  }
+
+  .wishes-list::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .wishes-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .wishes-list::-webkit-scrollbar-thumb {
+    background: rgba(201, 169, 110, 0.35);
+    border-radius: 999px;
   }
 
   .wish-card {
@@ -826,6 +851,9 @@
     <div id="firebaseWarning" class="firebase-warning"></div>
   </div>
 
+  <div class="wish-stats">
+    <span id="wishCount">0 wishes</span>
+  </div>
   <div class="wishes-list" id="wishesList"></div>
 </section>
 
@@ -943,6 +971,12 @@
 
       list.appendChild(card);
     });
+
+    const countText = wishesCache.length === 1 ? '1 wish' : `${wishesCache.length} wishes`;
+    const countElement = document.getElementById('wishCount');
+    if (countElement) {
+      countElement.textContent = countText;
+    }
   }
 
   function formatDateTime(value) {
