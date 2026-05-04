@@ -520,6 +520,54 @@
     opacity: 0.8;
   }
 
+  .admin-fab {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(201, 169, 110, 0.3);
+    border-radius: 999px;
+    background: rgba(26, 18, 8, 0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+    opacity: 0.65;
+    transition: opacity 0.25s ease, transform 0.25s ease, background 0.25s ease;
+    z-index: 90;
+    cursor: pointer;
+    overflow: hidden;
+    min-width: 48px;
+    max-width: 100%;
+  }
+
+  .admin-fab:hover {
+    opacity: 1;
+    background: rgba(26, 18, 8, 0.92);
+    transform: translateY(-2px);
+  }
+
+  .admin-fab .admin-btn,
+  .admin-fab .admin-badge {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .admin-fab:hover .admin-btn,
+  .admin-fab:hover .admin-badge {
+    opacity: 1;
+  }
+
+  .admin-fab .admin-btn {
+    padding: 10px 18px;
+    min-width: 90px;
+  }
+
+  .admin-fab:hover {
+    min-width: 180px;
+  }
+
   .qr-section {
     padding: 80px 20px;
     max-width: 900px;
@@ -770,13 +818,13 @@
     <div id="firebaseWarning" class="firebase-warning"></div>
   </div>
 
-  <div class="admin-controls">
-    <button class="admin-btn" type="button" onclick="toggleAdminMode()">Admin Login</button>
-    <span id="adminBadge" class="admin-badge">Admin mode off</span>
-  </div>
-
   <div class="wishes-list" id="wishesList"></div>
 </section>
+
+<div class="admin-fab" id="adminFab">
+  <button class="admin-btn" type="button" onclick="toggleAdminMode()">Admin Login</button>
+  <span id="adminBadge" class="admin-badge">Admin mode off</span>
+</div>
 
 <section class="qr-section fade-in">
   <p class="section-label">Venue Location</p>
