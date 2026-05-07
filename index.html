@@ -842,7 +842,7 @@
 </div>
 
 <!-- WISHES -->
-<section class="wishes-section fade-in">
+<section id="wishes" class="wishes-section fade-in">
   <p class="section-label">Send Your Love</p>
   <h2 class="section-title">Wedding <em>Wishes</em></h2>
 
@@ -1045,6 +1045,7 @@
       adminMode = true;
       updateAdminBadge();
       renderWishes();
+      document.getElementById('wishes').scrollIntoView({ behavior: 'smooth' });
     } else {
       alert('Incorrect password.');
     }
