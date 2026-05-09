@@ -1061,6 +1061,7 @@
 
   // Shared live wishes using Firebase Firestore
   const ADMIN_PASSWORD = 'admin123';
+  const REPLY_AUTHOR = 'S ❤️ S';
   let adminMode = false;
   let wishesCache = [];
 
@@ -1132,7 +1133,7 @@
           replyItem.className = 'reply-item';
           replyItem.innerHTML = `
             <div class="reply-meta">
-              S ❤️ S · ${formatDateTime(reply.createdAt)}
+              ${REPLY_AUTHOR} · ${formatDateTime(reply.createdAt)}
               ${adminMode ? `<button class="reply-delete" onclick="deleteReply('${wish.id}', ${replyIndex})">×</button>` : ''}
             </div>
             <div class="reply-text">${reply.text}</div>
