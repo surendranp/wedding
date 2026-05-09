@@ -534,6 +534,7 @@
     background: rgba(201, 169, 110, 0.05);
     border-radius: 4px;
     border-left: 2px solid var(--gold-dark);
+    position: relative;
   }
 
   .reply-meta {
@@ -542,6 +543,9 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .reply-text {
@@ -550,6 +554,28 @@
     color: var(--cream);
     opacity: 0.85;
     line-height: 1.5;
+  }
+
+  .reply-delete {
+    background: transparent;
+    border: 1px solid rgba(201, 169, 110, 0.3);
+    color: var(--gold-dark);
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 2px;
+    opacity: 0;
+    transition: all 0.2s ease;
+  }
+
+  .reply-item:hover .reply-delete {
+    opacity: 1;
+  }
+
+  .reply-delete:hover {
+    background: rgba(201, 169, 110, 0.2);
+    border-color: var(--gold);
+    color: var(--gold);
   }
 
   .reply-form {
@@ -1101,11 +1127,14 @@
       if (wish.replies && wish.replies.length > 0) {
         const repliesDiv = document.createElement('div');
         repliesDiv.className = 'wish-replies';
-        wish.replies.forEach(reply => {
+        wish.replies.forEach((reply, replyIndex) => {
           const replyItem = document.createElement('div');
           replyItem.className = 'reply-item';
           replyItem.innerHTML = `
-            <div class="reply-meta">Admin · ${formatDateTime(reply.createdAt)}</div>
+            <div class="reply-meta">
+              Admin · ${formatDateTime(reply.createdAt)}
+              ${adminMode ? `<button class="reply-delete" onclick="deleteReply('${wish.id}', ${replyIndex})">×</button>` : ''}
+            </div>
             <div class="reply-text">${reply.text}</div>
           `;
           repliesDiv.appendChild(replyItem);
@@ -1129,8 +1158,24 @@
 
   function formatDateTime(value) {
     if (!value) return 'Just now';
-    const date = value.toDate ? value.toDate() : new Date(value);
+
+    let date;
+    if (value.toDate && typeof value.toDate === 'function') {
+      // Firestore timestamp
+      date = value.toDate();
+    } else if (value.seconds) {
+      // Plain timestamp object
+      date = new Date(value.seconds * 1000);
+    } else if (typeof value === 'string' || typeof value === 'number') {
+      // ISO string or timestamp number
+      date = new Date(value);
+    } else {
+      // Fallback
+      date = new Date(value);
+    }
+
     if (Number.isNaN(date.getTime())) return 'Unknown time';
+
     return date.toLocaleString('en-GB', {
       year: 'numeric',
       month: 'short',
@@ -1144,8 +1189,11 @@
     wishesCollection.orderBy('order', 'desc').onSnapshot(snapshot => {
       wishesCache = [];
       snapshot.forEach(doc => {
-        wishesCache.push({ id: doc.id, ...doc.data() });
+        const wishData = { id: doc.id, ...doc.data() };
+        console.log('Wish data:', wishData); // Debug log
+        wishesCache.push(wishData);
       });
+      console.log('Total wishes loaded:', wishesCache.length); // Debug log
       renderWishes();
     }, error => {
       console.error('Failed to load live wishes:', error);
@@ -1267,33 +1315,74 @@
     replyForm.querySelector('.reply-input').focus();
   }
 
-  function cancelReply(replyForm) {
-    replyForm.remove();
-  }
+  function deleteReply(wishId, replyIndex) {
+    if (!adminMode) return;
 
-  function addReply(wishId, inputElement) {
-    const replyText = inputElement.value.trim();
-    if (!replyText) return;
+    console.log('Deleting reply from wish:', wishId, 'at index:', replyIndex);
 
     const wishRef = wishesCollection.doc(wishId);
     wishRef.get().then(doc => {
       if (doc.exists) {
         const data = doc.data();
         const replies = data.replies || [];
-        replies.push({
+
+        if (replyIndex >= 0 && replyIndex < replies.length) {
+          replies.splice(replyIndex, 1);
+          console.log('Updated replies after deletion:', replies);
+
+          return wishRef.update({ replies });
+        } else {
+          console.error('Invalid reply index');
+          throw new Error('Invalid reply index');
+        }
+      } else {
+        console.error('Wish document does not exist');
+        throw new Error('Wish not found');
+      }
+    }).then(() => {
+      console.log('Reply deleted successfully');
+    }).catch(error => {
+      console.error('Failed to delete reply:', error);
+      alert('Unable to delete reply. Please check console for details.');
+    });
+  }
+
+  function addReply(wishId, inputElement) {
+    const replyText = inputElement.value.trim();
+    if (!replyText) {
+      console.log('Reply text is empty');
+      return;
+    }
+
+    console.log('Adding reply to wish:', wishId, 'Text:', replyText);
+
+    const wishRef = wishesCollection.doc(wishId);
+    wishRef.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        const replies = data.replies || [];
+        console.log('Current replies:', replies);
+
+        const newReply = {
           text: replyText,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        wishRef.update({ replies }).then(() => {
-          inputElement.value = '';
-          cancelReply(inputElement.parentElement);
-        }).catch(error => {
-          console.error('Failed to add reply:', error);
-          alert('Unable to add reply.');
-        });
+        };
+
+        replies.push(newReply);
+        console.log('Updated replies:', replies);
+
+        return wishRef.update({ replies });
+      } else {
+        console.error('Wish document does not exist');
+        throw new Error('Wish not found');
       }
+    }).then(() => {
+      console.log('Reply added successfully');
+      inputElement.value = '';
+      cancelReply(inputElement.parentElement);
     }).catch(error => {
-      console.error('Failed to get wish for reply:', error);
+      console.error('Failed to add reply:', error);
+      alert('Unable to add reply. Please check console for details.');
     });
   }
 
