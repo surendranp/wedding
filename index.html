@@ -496,6 +496,104 @@
     display: flex;
   }
 
+  .wish-reactions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .reaction-emoji {
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+  }
+
+  .reaction-emoji:hover {
+    transform: scale(1.2);
+    background: rgba(201, 169, 110, 0.1);
+  }
+
+  .reaction-count {
+    font-size: 0.8rem;
+    color: var(--gold-light);
+    margin-left: 4px;
+  }
+
+  .wish-replies {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(201, 169, 110, 0.2);
+  }
+
+  .reply-item {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(201, 169, 110, 0.05);
+    border-radius: 4px;
+    border-left: 2px solid var(--gold-dark);
+  }
+
+  .reply-meta {
+    font-size: 0.7rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .reply-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.9rem;
+    color: var(--cream);
+    opacity: 0.85;
+    line-height: 1.5;
+  }
+
+  .reply-form {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .reply-input {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--gold-dark);
+    border-radius: 2px;
+    padding: 8px 12px;
+    color: var(--cream);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    outline: none;
+    resize: none;
+    min-height: 32px;
+  }
+
+  .reply-input:focus {
+    border-color: var(--gold);
+  }
+
+  .reply-btn {
+    border: 1px solid var(--gold);
+    background: transparent;
+    color: var(--gold);
+    padding: 8px 16px;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .reply-btn:hover {
+    background: var(--gold);
+    color: var(--deep);
+  }
+
   .wish-actions button {
     border: 1px solid var(--gold);
     background: transparent;
@@ -947,6 +1045,7 @@
     wishesCache.forEach((wish, index) => {
       const card = document.createElement('div');
       card.className = 'wish-card' + (adminMode ? ' admin-active' : '');
+      card.setAttribute('data-wish-id', wish.id);
 
       const meta = document.createElement('div');
       meta.className = 'wish-meta';
@@ -964,8 +1063,55 @@
         <button type="button" onclick="deleteWish('${wish.id}')">Delete</button>
         <button type="button" onclick="moveWish('${wish.id}', -1)" ${index === 0 ? 'disabled' : ''}>Move Up</button>
         <button type="button" onclick="moveWish('${wish.id}', 1)" ${index === wishesCache.length - 1 ? 'disabled' : ''}>Move Down</button>
+        <button type="button" onclick="showReplyForm('${wish.id}')">Reply</button>
       `;
       card.appendChild(actions);
+
+      // Add reactions (only in admin mode)
+      if (adminMode) {
+        const reactions = document.createElement('div');
+        reactions.className = 'wish-reactions';
+        const reactionEmojis = ['❤️', '👍', '🎉', '😊', '🙏'];
+        reactionEmojis.forEach(emoji => {
+          const emojiBtn = document.createElement('span');
+          emojiBtn.className = 'reaction-emoji';
+          emojiBtn.textContent = emoji;
+          emojiBtn.onclick = () => addReaction(wish.id, emoji);
+          reactions.appendChild(emojiBtn);
+        });
+        card.appendChild(reactions);
+      }
+
+      // Display existing reactions (always visible if they exist)
+      if (wish.reactions && Object.keys(wish.reactions).length > 0) {
+        const reactionDisplay = document.createElement('div');
+        reactionDisplay.className = 'wish-reactions';
+        reactionDisplay.style.marginTop = adminMode ? '8px' : '12px';
+        Object.entries(wish.reactions).forEach(([emoji, count]) => {
+          if (count > 0) {
+            const reactionSpan = document.createElement('span');
+            reactionSpan.innerHTML = `${emoji}<span class="reaction-count">${count}</span>`;
+            reactionDisplay.appendChild(reactionSpan);
+          }
+        });
+        card.appendChild(reactionDisplay);
+      }
+
+      // Display replies
+      if (wish.replies && wish.replies.length > 0) {
+        const repliesDiv = document.createElement('div');
+        repliesDiv.className = 'wish-replies';
+        wish.replies.forEach(reply => {
+          const replyItem = document.createElement('div');
+          replyItem.className = 'reply-item';
+          replyItem.innerHTML = `
+            <div class="reply-meta">Admin · ${formatDateTime(reply.createdAt)}</div>
+            <div class="reply-text">${reply.text}</div>
+          `;
+          repliesDiv.appendChild(replyItem);
+        });
+        card.appendChild(repliesDiv);
+      }
 
       if (!adminMode) {
         actions.style.display = 'none';
@@ -1077,6 +1223,77 @@
     batch.commit().catch(error => {
       console.error('Failed to reorder wishes:', error);
       alert('Unable to reorder messages.');
+    });
+  }
+
+  function addReaction(wishId, emoji) {
+    if (!adminMode) return;
+
+    const wishRef = wishesCollection.doc(wishId);
+    wishRef.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        const reactions = data.reactions || {};
+        reactions[emoji] = (reactions[emoji] || 0) + 1;
+        wishRef.update({ reactions }).catch(error => {
+          console.error('Failed to add reaction:', error);
+          alert('Unable to add reaction.');
+        });
+      }
+    }).catch(error => {
+      console.error('Failed to get wish for reaction:', error);
+    });
+  }
+
+  function showReplyForm(wishId) {
+    if (!adminMode) return;
+
+    // Remove any existing reply forms
+    document.querySelectorAll('.reply-form').forEach(form => form.remove());
+
+    const wishCard = document.querySelector(`[data-wish-id="${wishId}"]`);
+
+    if (!wishCard) return;
+
+    const replyForm = document.createElement('div');
+    replyForm.className = 'reply-form';
+    replyForm.innerHTML = `
+      <textarea class="reply-input" placeholder="Write a reply..." rows="2"></textarea>
+      <button class="reply-btn" onclick="addReply('${wishId}', this.previousElementSibling)">Reply</button>
+      <button class="reply-btn" onclick="cancelReply(this.parentElement)" style="background: rgba(201,169,110,0.1); border-color: rgba(201,169,110,0.3);">Cancel</button>
+    `;
+
+    wishCard.appendChild(replyForm);
+    replyForm.querySelector('.reply-input').focus();
+  }
+
+  function cancelReply(replyForm) {
+    replyForm.remove();
+  }
+
+  function addReply(wishId, inputElement) {
+    const replyText = inputElement.value.trim();
+    if (!replyText) return;
+
+    const wishRef = wishesCollection.doc(wishId);
+    wishRef.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        const replies = data.replies || [];
+        replies.push({
+          text: replyText,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        wishRef.update({ replies }).then(() => {
+          inputElement.value = '';
+          cancelReply(inputElement.parentElement);
+        }).catch(error => {
+          console.error('Failed to add reply:', error);
+          alert('Unable to add reply.');
+        });
+      }
+    }).catch(error => {
+      console.error('Failed to get wish for reply:', error);
     });
   }
 
