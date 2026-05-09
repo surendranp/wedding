@@ -1133,7 +1133,7 @@
           replyItem.className = 'reply-item';
           replyItem.innerHTML = `
             <div class="reply-meta">
-              ${REPLY_AUTHOR} · ${formatDateTime(reply.createdAt)}
+              ${REPLY_AUTHOR}
               ${adminMode ? `<button class="reply-delete" onclick="deleteReply('${wish.id}', ${replyIndex})">×</button>` : ''}
             </div>
             <div class="reply-text">${reply.text}</div>
