@@ -1386,6 +1386,12 @@
     });
   }
 
+  function cancelReply(replyForm) {
+    if (replyForm && replyForm.parentElement) {
+      replyForm.remove();
+    }
+  }
+
   updateAdminBadge();
   showFirebaseWarning();
   initWishesListener();
