@@ -1365,7 +1365,7 @@
 
         const newReply = {
           text: replyText,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          createdAt: firebase.firestore.Timestamp.now()
         };
 
         replies.push(newReply);
